@@ -1,0 +1,60 @@
+%三角网格
+pv=[0 0 ;100 0;100 100;0 100;0 0];
+[p,t]=distmesh2d(@dpoly,@huniform,5,[0,0;100,100],pv,pv);
+
+%刚度矩阵
+K=zeros(size(p,1));
+%xi=p(t(n,1),1) yi=p(t(n,1),2)
+%xj=p(t(n,2),1) yj=p(t(n,2),2)
+%xm=p(t(n,3),1) ym=p(t(n,3),2)
+% s1=((p(t(n,2),1)*p(t(n,3),2)-p(t(n,3),1)*p(t(n,2),2))...
+%   -(p(t(n,1),1)*p(t(n,3),2)-p(t(n,3),1)*p(t(n,1),2))...
+%   +(p(t(n,1),1)*p(t(n,2),2)-p(t(n,2),1)*p(t(n,1),2)))/2;
+%B=[ai aj am;bi bj bm]
+%ai=yj-ym  aj=ym-yi  am=yi-yj
+%bi=xm-xj  bj=xi-xm  bm=xj-xi           
+
+
+for n=1:size(t,1)
+    
+    %节点信息
+    xi=p(t(n,1),1); yi=p(t(n,1),2);
+    xj=p(t(n,2),1); yj=p(t(n,2),2);
+    xm=p(t(n,3),1); ym=p(t(n,3),2);
+    ai=yj-ym;  aj=ym-yi;  am=yi-yj;
+    bi=xm-xj;  bj=xi-xm;  bm=xj-xi;
+    
+    %单元面积 t[i,j,k] pn[x,y]
+    S=((xj*ym-xm*yj)-(xi*ym-xm*yi)+(xi*yj-xj*yi))/2;
+    %电阻率 Res
+    Res=10;
+    %傅立叶反变换系数 k
+    k=1;
+    
+    %K1
+    B=[ai aj am;bi bj bm];
+    K1=Res*(B'* B)/(4*S);
+    
+    %K2
+    K2=(k^2)*Res*(S*[2 1 1;1 2 1;1 1 2])/12;
+    
+    %K3
+    K3=[0 0 0;0 0 0;0 0 0];
+    
+    %K1+K2+K3 ===>>K
+    for r=1:3
+        for c=1:3
+            K(t(n,r),t(n,c))=K(t(n,r),t(n,c))+K1(r,c)+K2(r,c)+K3(r,c);
+        end
+    end
+
+end
+
+%载荷向量
+I=zeros(size(p,1),1);
+I(200)=I(200)+10;
+
+%求解
+U=K'*I;
+
+%画图
